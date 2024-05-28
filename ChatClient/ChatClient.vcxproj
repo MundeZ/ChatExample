@@ -132,7 +132,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\C++Lib\jsoncpp\dist\jsoncpp.cpp" />
     <ClCompile Include="ChatClient.cpp" />
   </ItemGroup>
   <ItemGroup>
