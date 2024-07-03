@@ -49,6 +49,16 @@ std::string apiRegistration = "Registration";
 std::string apiLogin = "Login";
 std::string apiMessage = "Message";
 
+class Roma
+{
+public:
+    Roma();
+    ~Roma();
+
+private:
+
+};
+
 
 int main() {
     io_service service;

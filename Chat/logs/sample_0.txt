@@ -1,3 +1,1 @@
-[2024-05-28 23:10:23.116903] [0x0000f378] [info]: Successfully connected to the database!
-[2024-05-28 23:10:31.735925] [0x0000f378] [info]: Client connected: 127.0.0.1
-[2024-05-28 23:10:37.759966] [0x0000e884] [info]: OK
+[2024-05-28 23:47:43.547436] [0x0000a624] [info]: Successfully connected to the database!
