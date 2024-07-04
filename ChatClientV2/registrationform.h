@@ -15,12 +15,13 @@ public:
     explicit RegistrationForm(QWidget *parent = nullptr);
     ~RegistrationForm();
 
+signals:
+    void loginRequested();
+    void enterToChatRequested();
+
 private slots:
     void on_loginButton_clicked();
     void on_enterToChatPushButton_clicked();
-
-signals:
-    void loginRequested();
 
 private:
     Ui::RegistrationForm *ui;

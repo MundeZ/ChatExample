@@ -17,6 +17,5 @@ void LoginForm::on_registrationPushButton_clicked() {
 }
 
 void LoginForm::on_enterToChatPushButton_clicked() {
-
+    emit enterToChatRequested();
 }
-

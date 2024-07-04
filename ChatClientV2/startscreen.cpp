@@ -6,19 +6,35 @@ StartScreen::StartScreen(QWidget *parent)
     , ui(new Ui::StartScreen)
 {
     ui->setupUi(this);
-    connect(ui->loginWidget, &LoginForm::registerRequested, this, &StartScreen::setRegistrationForm );
-    connect(ui->registerWidget, &RegistrationForm::loginRequested, this, &StartScreen::setLoginForm );
+
+    loginForm = new LoginForm(this);
+    registrationForm = new RegistrationForm(this);
+    mainWindow = new MainWindow(this);
+
+    ui->stackedWidget->addWidget(loginForm);
+    ui->stackedWidget->addWidget(registrationForm);
+    ui->stackedWidget->addWidget(mainWindow);
+
+    connect(loginForm, &LoginForm::registerRequested, this, &StartScreen::setRegistrationForm);
+    connect(loginForm, &LoginForm::enterToChatRequested, this, &StartScreen::setMainWindow);
+    connect(registrationForm, &RegistrationForm::loginRequested, this, &StartScreen::setLoginForm);
+    connect(registrationForm, &RegistrationForm::enterToChatRequested, this, &StartScreen::setMainWindow);
+
+    ui->stackedWidget->setCurrentWidget(loginForm); // Устанавливаем начальную страницу
 }
 
-StartScreen::~StartScreen()
-{
+StartScreen::~StartScreen() {
     delete ui;
 }
 
 void StartScreen::setLoginForm() {
-    ui->stackedWidget->setCurrentIndex(0);
+    ui->stackedWidget->setCurrentWidget(loginForm);
 }
 
 void StartScreen::setRegistrationForm() {
-    ui->stackedWidget->setCurrentIndex(1);
+    ui->stackedWidget->setCurrentWidget(registrationForm);
+}
+
+void StartScreen::setMainWindow() {
+    ui->stackedWidget->setCurrentWidget(mainWindow);
 }

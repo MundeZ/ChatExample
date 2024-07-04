@@ -8,8 +8,7 @@ RegistrationForm::RegistrationForm(QWidget *parent)
     ui->setupUi(this);
 }
 
-RegistrationForm::~RegistrationForm()
-{
+RegistrationForm::~RegistrationForm() {
     delete ui;
 }
 
@@ -18,6 +17,5 @@ void RegistrationForm::on_loginButton_clicked() {
 }
 
 void RegistrationForm::on_enterToChatPushButton_clicked() {
-
+    emit enterToChatRequested();
 }
-

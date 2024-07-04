@@ -17,6 +17,7 @@ public:
 
 signals:
     void registerRequested();
+    void enterToChatRequested();
 
 private slots:
     void on_registrationPushButton_clicked();
