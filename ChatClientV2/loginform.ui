@@ -56,14 +56,14 @@
     </layout>
    </item>
    <item>
+    <widget class="QPushButton" name="enterToChatPushButton">
+     <property name="text">
+      <string>Enter to chat</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QDialogButtonBox" name="buttonBox">
-       <property name="standardButtons">
-        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-       </property>
-      </widget>
-     </item>
      <item>
       <widget class="QPushButton" name="registrationPushButton">
        <property name="text">

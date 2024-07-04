@@ -17,13 +17,7 @@ void RegistrationForm::on_loginButton_clicked() {
     emit loginRequested();
 }
 
-
-void RegistrationForm::on_buttonBox_rejected() {
-
-}
-
-
-void RegistrationForm::on_buttonBox_accepted() {
+void RegistrationForm::on_enterToChatPushButton_clicked() {
 
 }
 

@@ -19,9 +19,8 @@ signals:
     void registerRequested();
 
 private slots:
-    void on_buttonBox_rejected();
     void on_registrationPushButton_clicked();
-    void on_buttonBox_accepted();
+    void on_enterToChatPushButton_clicked();
 
 private:
     Ui::LoginForm *ui;

@@ -17,8 +17,8 @@ public:
 
 private slots:
     void on_loginButton_clicked();
-    void on_buttonBox_rejected();
-    void on_buttonBox_accepted();
+    void on_enterToChatPushButton_clicked();
+
 signals:
     void loginRequested();
 
