@@ -86,7 +86,7 @@ qt6_add_translation(QM_FILES ${TS_FILES})
 
 add_executable(Chat ${QM_FILES} ${SRC_FILES} ${HEADERS_FILES}
  ${RC_FILES} ${UI_FILES}
- sources/mainwindow.h sources/mainwindow.cpp sources/mainwindow.ui sources/main.cpp
+ mainwindow.h mainwindow.cpp mainwindow.ui main.cpp
  startscreen.h startscreen.cpp startscreen.ui
  loginform.h loginform.cpp loginform.ui
  registrationform.h registrationform.cpp registrationform.ui
