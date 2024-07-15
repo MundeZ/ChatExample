@@ -3,6 +3,7 @@
 #include "ChatServer.h"
 
 int main() {
+    setlocale(LC_ALL, "Russian");
     try {
         boost::asio::io_service service;
         ip::tcp::endpoint endpoint(ip::tcp::v4(), 1234);

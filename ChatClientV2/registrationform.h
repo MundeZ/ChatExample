@@ -2,6 +2,7 @@
 #define REGISTRATIONFORM_H
 
 #include <QWidget>
+#include "connect.h"
 
 namespace Ui {
 class RegistrationForm;
@@ -12,7 +13,7 @@ class RegistrationForm : public QWidget
     Q_OBJECT
 
 public:
-    explicit RegistrationForm(QWidget *parent = nullptr);
+    explicit RegistrationForm(QWidget *parent = nullptr, Connect* connectToServer = nullptr);
     ~RegistrationForm();
 
 signals:
@@ -25,6 +26,8 @@ private slots:
 
 private:
     Ui::RegistrationForm *ui;
+    Connect* connectToServer; // НЕ ЗАБЫВАТЬ ИСПОЛЬЗОВАТЬ УКАЗАТАЛЬ ИНАЧЕ БУДЕТ СОЗДАННО НОВОЕ ПОДКЛЮЧЕНИЕ
+
 };
 
 #endif // REGISTRATIONFORM_H

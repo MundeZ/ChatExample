@@ -5,6 +5,7 @@
 #include "loginform.h"
 #include "registrationform.h"
 #include "mainwindow.h"
+#include "connect.h"
 
 namespace Ui {
 class StartScreen;
@@ -28,6 +29,7 @@ private:
     LoginForm *loginForm;
     RegistrationForm *registrationForm;
     MainWindow *mainWindow;
+    Connect connectToServer;
 };
 
 #endif // STARTSCREEN_H

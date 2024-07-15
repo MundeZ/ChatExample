@@ -2,6 +2,7 @@
 #define LOGINFORM_H
 
 #include <QWidget>
+#include "connect.h"
 
 namespace Ui {
 class LoginForm;
@@ -12,7 +13,7 @@ class LoginForm : public QWidget
     Q_OBJECT
 
 public:
-    explicit LoginForm(QWidget *parent = nullptr);
+    explicit LoginForm(QWidget *parent = nullptr, Connect* connectToServer = nullptr);
     ~LoginForm();
 
 signals:
@@ -25,6 +26,7 @@ private slots:
 
 private:
     Ui::LoginForm *ui;
+    Connect* connectToServer;
 };
 
 #endif // LOGINFORM_H

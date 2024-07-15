@@ -65,6 +65,7 @@ add_executable(Chat ${QM_FILES} ${SRC_FILES} ${HEADERS_FILES}
     startscreen.h startscreen.cpp startscreen.ui
     loginform.h loginform.cpp loginform.ui
     registrationform.h registrationform.cpp registrationform.ui
+    connect.h connect.cpp
 )
 
 target_include_directories(Chat PUBLIC ${BOOST_INCLUDEDIR})
