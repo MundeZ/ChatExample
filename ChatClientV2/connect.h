@@ -15,7 +15,8 @@ using namespace boost::asio;
 enum Api {
     REGISTRATION,
     LOGIN,
-    MESSAGE
+    MESSAGE,
+    FIND_USER
 };
 
 class Connect {

@@ -20,6 +20,8 @@ private:
 	void response(const std::string& data);
 	void registrationUser(MYSQL& mysql, const std::string& login, const std::string& password);
 	void loginUser(MYSQL& mysql, const std::string& login, const std::string& password);
+	void findUser(MYSQL& mysql, const std::string& login);
+	void insertMessageIntoDB(MYSQL& mysql, const std::string& sender, const std::string& recipient, const std::string& message);
 	void menu(const std::map<std::string, std::string>& client_data);
 	std::map<std::string, std::string> get_data();
 	ip::tcp::socket socket_;

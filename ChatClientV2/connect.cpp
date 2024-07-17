@@ -29,7 +29,8 @@ std::string Connect::getApi(Api api) {
     std::map<Api, std::string> apiToString = {
         { REGISTRATION, "Registration" },
         { LOGIN, "Login" },
-        { MESSAGE, "Message" }
+        { MESSAGE, "Message" },
+        { FIND_USER, "FindUser"}
     };
     return apiToString[api];
 }

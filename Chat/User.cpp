@@ -58,6 +58,15 @@ void User::menu(const std::map<std::string, std::string>& client_data) {
         else if (it.first == "api" && it.second == "Login") {
             loginUser(mysql_, client_data.at("login"), client_data.at("password"));
         }
+        else if (it.first == "api" && it.second == "FindUser") {
+            findUser(mysql_, client_data.at("login"));
+        }
+        else if (it.first == "api" && it.second == "Message") {
+            // Нужно сделать добавление в базу
+        }
+        else if (it.first == "api" && it.second == "KAKOITO REQUEST 4TO BI 4ELU DAT SOOBSHENIE") {
+            // 
+        }
     }
 }
 
@@ -89,6 +98,62 @@ void User::registrationUser(MYSQL& mysql, const std::string& login, const std::s
 
     std::ostringstream queryStream;
     queryStream << "INSERT INTO testdb.users(id, name, password) VALUES (default, '" << login << "', '" << password << "')";
+    std::string query = queryStream.str();
+
+    if (mysql_query(&mysql, query.c_str()) != 0) {
+        std::string data = "ERROR: " + std::string(mysql_error(&mysql));
+        Logger::instance().log(data);
+        response(data);
+        return;
+    }
+    else {
+        std::string data = "OK";
+        Logger::instance().log(data);
+        response(data);
+    }
+}
+
+void User::findUser(MYSQL& mysql, const std::string& login) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    std::ostringstream queryStream;
+    queryStream << "SELECT COUNT(*) FROM testdb.users WHERE name = '" << login << "'";
+    std::string query = queryStream.str();
+
+    if (mysql_query(&mysql, query.c_str()) != 0) {
+        std::string data = "ERROR: " + std::string(mysql_error(&mysql));
+        Logger::instance().log(data);
+        response(data);
+    }
+    else {
+        MYSQL_RES* result = mysql_store_result(&mysql);
+        if (result == nullptr) {
+            std::string data = "ERROR: " + std::string(mysql_error(&mysql));
+            Logger::instance().log(data);
+            response(data);
+        }
+        else {
+            MYSQL_ROW row = mysql_fetch_row(result);
+            if (row != nullptr && std::stoi(row[0]) > 0) {
+                std::string data = "OK";
+                Logger::instance().log(data);
+                response(data);
+            }
+            else {
+                std::string data = "ERROR: User not found";
+                Logger::instance().log(data);
+                response(data);
+            }
+            mysql_free_result(result);
+        }
+    }
+}
+
+void User::insertMessageIntoDB(MYSQL& mysql, const std::string& sender, const std::string& recipient, const std::string& message) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    std::ostringstream queryStream;
+    queryStream << "INSERT INTO testdb.messages(id, sender, recipient, message) VALUES (default, '" << sender << "', '" << recipient << "', '" << message << "')";
     std::string query = queryStream.str();
 
     if (mysql_query(&mysql, query.c_str()) != 0) {
@@ -139,10 +204,6 @@ void User::loginUser(MYSQL& mysql, const std::string& login, const std::string& 
         }
     }
 }
-
-
-
-
 
 void User::response(const std::string& data) {
     boost::json::object response;

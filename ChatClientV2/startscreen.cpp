@@ -10,7 +10,7 @@ StartScreen::StartScreen(QWidget *parent)
 
     loginForm = new LoginForm(this, &connectToServer);
     registrationForm = new RegistrationForm(this, &connectToServer); // Передаем экземпляр Connect
-    mainWindow = new MainWindow(this);
+    mainWindow = new MainWindow(this, &connectToServer);
 
     ui->stackedWidget->addWidget(loginForm);
     ui->stackedWidget->addWidget(registrationForm);
@@ -23,7 +23,7 @@ StartScreen::StartScreen(QWidget *parent)
 
     connectToServer.connect(); // Подключение к серверу
 
-    ui->stackedWidget->setCurrentWidget(loginForm); // Устанавливаем начальную страницу
+    ui->stackedWidget->setCurrentWidget(mainWindow); // Устанавливаем начальную страницу
 }
 
 StartScreen::~StartScreen() {
