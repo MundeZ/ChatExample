@@ -23,7 +23,7 @@ StartScreen::StartScreen(QWidget *parent)
 
     connectToServer.connect(); // Подключение к серверу
 
-    ui->stackedWidget->setCurrentWidget(mainWindow); // Устанавливаем начальную страницу
+    ui->stackedWidget->setCurrentWidget(loginForm); // Устанавливаем начальную страницу
 }
 
 StartScreen::~StartScreen() {

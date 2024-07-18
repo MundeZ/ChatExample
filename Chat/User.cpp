@@ -1,8 +1,11 @@
 #include "User.h"
 
-User::User(ip::tcp::socket socket, MYSQL& mysql) : socket_(std::move(socket)), mysql_(mysql) {}
+User::User(ip::tcp::socket socket, MYSQL& mysql, ChatServer* chatServer)
+    : socket_(std::move(socket)), mysql_(mysql), chatServer_(chatServer) {}
 
-User::~User() { socket_.close(); }
+User::~User() {
+    socket_.close();
+}
 
 void User::start() {
     try {
@@ -14,7 +17,6 @@ void User::start() {
                 Logger::instance().log("No client data received, ending connection.");
                 break;
             }
-            std::cout << "Processing client data...\n";
             Logger::instance().log("Processing client data...");
             menu(client_data);
         }
@@ -51,28 +53,23 @@ std::map<std::string, std::string> User::get_data() {
 }
 
 void User::menu(const std::map<std::string, std::string>& client_data) {
-    for (const auto& it : client_data) {
-        if (it.first == "api" && it.second == "Registration") {
-            registrationUser(mysql_, client_data.at("login"), client_data.at("password"));
-        }
-        else if (it.first == "api" && it.second == "Login") {
-            loginUser(mysql_, client_data.at("login"), client_data.at("password"));
-        }
-        else if (it.first == "api" && it.second == "FindUser") {
-            findUser(mysql_, client_data.at("login"));
-        }
-        else if (it.first == "api" && it.second == "Message") {
-            // Нужно сделать добавление в базу
-        }
-        else if (it.first == "api" && it.second == "KAKOITO REQUEST 4TO BI 4ELU DAT SOOBSHENIE") {
-            // 
-        }
+    if (client_data.at("api") == "Registration") {
+        registrationUser(mysql_, client_data.at("login"), client_data.at("password"));
+    }
+    else if (client_data.at("api") == "Login") {
+        loginUser(mysql_, client_data.at("login"), client_data.at("password"));
+    }
+    else if (client_data.at("api") == "FindUser") {
+        findUser(mysql_, client_data.at("login"));
+    }
+    else if (client_data.at("api") == "Message") {
+        insertMessageIntoDB(mysql_, client_data.at("login"), client_data.at("recipient"), client_data.at("message")); // просто для хранения логов 
+        sendMessage(client_data.at("recipient"), client_data.at("message"));
     }
 }
 
 void User::registrationUser(MYSQL& mysql, const std::string& login, const std::string& password) {
     std::lock_guard<std::mutex> lock(mutex_);
-    
 
     std::string checkQuery = "SELECT COUNT(*) FROM testdb.users WHERE name = '" + login + "'";
 
@@ -169,6 +166,25 @@ void User::insertMessageIntoDB(MYSQL& mysql, const std::string& sender, const st
     }
 }
 
+void User::sendMessage(const std::string& recipient, const std::string& messageForUser) {
+    try {
+        auto sock = chatServer_->getFromActiveClients(recipient);
+        if (sock) {
+            boost::system::error_code error;
+            boost::asio::write(*sock, buffer(messageForUser + "\n"), error);
+            if (error) {
+                Logger::instance().log("Error sending message: " + error.message());
+            }
+        }
+        else {
+            Logger::instance().log("User not found: " + recipient);
+        }
+    }
+    catch (const std::runtime_error& e) {
+        Logger::instance().log("Error: " + std::string(e.what()));
+    }
+}
+
 void User::loginUser(MYSQL& mysql, const std::string& login, const std::string& password) {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -194,6 +210,13 @@ void User::loginUser(MYSQL& mysql, const std::string& login, const std::string& 
                 std::string data = "OK";
                 Logger::instance().log(data);
                 response(data);
+
+                // Add user to active clients
+                ClientInfo client;
+                client.Login = login;
+                client.userSocket = &socket_;
+                chatServer_->addToActiveClients(client);
+
             }
             else {
                 std::string data = "ERROR: Invalid login or password";

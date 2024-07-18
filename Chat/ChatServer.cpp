@@ -7,12 +7,27 @@ ChatServer::ChatServer(io_service& service, const ip::tcp::endpoint& endpoint)
     do_accept();
 }
 
-ChatServer::~ChatServer() { mysql_close(&mysql_); }
+ChatServer::~ChatServer() {
+    mysql_close(&mysql_);
+}
+
+void ChatServer::addToActiveClients(ClientInfo client) {
+    activeClients_.push_back(client);
+}
+
+ip::tcp::socket* ChatServer::getFromActiveClients(const std::string& name) {
+    for (auto& x : activeClients_) {
+        if (x.Login == name) {
+            return x.userSocket;
+        }
+    }
+    throw std::runtime_error("User not found");
+}
 
 void ChatServer::do_accept() {
     acceptor_.async_accept(socket_, [this](boost::system::error_code ec) {
         if (!ec) {
-            std::make_shared<User>(std::move(socket_),mysql_)->start();
+            std::make_shared<User>(std::move(socket_), mysql_, this)->start();
         }
         do_accept();  // Accept the next connection
         });
