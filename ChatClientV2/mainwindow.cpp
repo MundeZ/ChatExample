@@ -30,11 +30,12 @@ void MainWindow::removeCurrentUserForMessage() {
 
 void MainWindow::findUserInLineEdit() { // ищем юзера
     std::string data = ui->findUserLineEdit->text().toStdString();
-    std::string response = connectToServer->requestToServer(connectToServer->getApi(FIND_USER), data);
+    std::string response = connectToServer->requestToServer(connectToServer->getApi(LOGIN), data, "", "", "");
+
     if(response == "OK") {
         createUserInLeftMenu(data);
     } else {
-        ui->findUserLineEdit->setText("User not found");
+        ui->findUserLineEdit->setText(QString::fromStdString(response));
     }
 }
 

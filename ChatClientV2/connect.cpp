@@ -11,7 +11,7 @@ Connect::~Connect() {
 }
 
 void Connect::connect() {
-    ip::tcp::endpoint endpoint(ip::address::from_string("127.0.0.1"), 1234);
+    ip::tcp::endpoint endpoint(ip::address::from_string("127.0.0.1"), 8888);
     socket_.connect(endpoint, error_);
 
     if (error_) {
@@ -60,9 +60,10 @@ std::string Connect::requestToServer(const std::string &api, const std::string &
 std::string Connect::responseFromServer() {
         std::string jsonData;
         boost::asio::streambuf receiveBuffer;
-        boost::asio::read_until(socket_, receiveBuffer, "\n", error_);
-        if (error_) {
-            return "Error reading response: " + error_.message();
+        boost::system::error_code error;
+        boost::asio::read_until(socket_, receiveBuffer, "\n", error);
+        if (error) {
+            return "Error reading response: " + error.message();
         }
 
         std::istream is(&receiveBuffer);

@@ -8,28 +8,32 @@
 #include <mutex>
 #include "Logger.h"
 #include <sstream>
-#include "ChatServer.h"
+#include <memory>
+#include <vector>
+#include <algorithm>
 
 using namespace boost::asio;
 
 class User : public std::enable_shared_from_this<User> {
 public:
-    User(ip::tcp::socket socket, MYSQL& mysql, ChatServer* chatServer);
+    User(ip::tcp::socket socket, MYSQL& mysql, std::vector<std::shared_ptr<User>>& sessions);
     ~User();
     void start();
 
 private:
-    void response(const std::string& data);
-    void registrationUser(MYSQL& mysql, const std::string& login, const std::string& password);
+    void do_read();
+    void do_write(std::size_t length, std::map<std::string, std::string> responseMap);
+    std::map<std::string, std::string> parseData(std::string json_data);
     void loginUser(MYSQL& mysql, const std::string& login, const std::string& password);
+    void registrationUser(MYSQL& mysql, const std::string& login, const std::string& password);
     void findUser(MYSQL& mysql, const std::string& login);
-    void insertMessageIntoDB(MYSQL& mysql, const std::string& sender, const std::string& recipient, const std::string& message);
-    void sendMessage(const std::string& recipient, const std::string& messageForUser);
     void menu(const std::map<std::string, std::string>& client_data);
-    std::map<std::string, std::string> get_data();
     ip::tcp::socket socket_;
     MYSQL mysql_;
     std::mutex mutex_;
 
-    ChatServer* chatServer_;
+    static constexpr int max_length = 1024;
+    char data_[max_length];
+
+    std::vector<std::shared_ptr<User>>& sessions_;
 };

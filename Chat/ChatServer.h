@@ -6,26 +6,21 @@
 #include <string>
 #include "mysql.h"
 
-using namespace boost::asio;
+#include "User.h"
 
-struct ClientInfo {
-    std::string Login;
-    ip::tcp::socket* userSocket;
-};
+using namespace boost::asio;
 
 class ChatServer {
 public:
-    ChatServer(io_service& service, const ip::tcp::endpoint& endpoint);
+    ChatServer(boost::asio::io_context& io_context, short port);
     ~ChatServer();
-
-    void addToActiveClients(ClientInfo client);
-    ip::tcp::socket* getFromActiveClients(const std::string& name);
+    void connect_to_db();
 
 private:
-    void connect_to_db();
     void do_accept();
     ip::tcp::acceptor acceptor_;
     ip::tcp::socket socket_;
     MYSQL mysql_;
-    std::vector<ClientInfo> activeClients_;
+
+    std::vector<std::shared_ptr<User>> sessions_;
 };
