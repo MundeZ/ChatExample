@@ -138,7 +138,6 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\C++Lib\jsoncpp\dist\json\json.h" />
     <ClInclude Include="ChatServer.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="resource.h" />

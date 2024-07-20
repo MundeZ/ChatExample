@@ -30,7 +30,7 @@ void MainWindow::removeCurrentUserForMessage() {
 
 void MainWindow::findUserInLineEdit() { // ищем юзера
     std::string data = ui->findUserLineEdit->text().toStdString();
-    std::string response = connectToServer->requestToServer(connectToServer->getApi(LOGIN), data, "", "", "");
+    std::string response = connectToServer->requestToServer(connectToServer->getApi(FIND_USER), data, "", "", "");
 
     if(response == "OK") {
         createUserInLeftMenu(data);

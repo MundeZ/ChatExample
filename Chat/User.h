@@ -27,6 +27,7 @@ private:
     void loginUser(MYSQL& mysql, const std::string& login, const std::string& password);
     void registrationUser(MYSQL& mysql, const std::string& login, const std::string& password);
     void findUser(MYSQL& mysql, const std::string& login);
+    void sendMessage(const std::string& recipient);
     void menu(const std::map<std::string, std::string>& client_data);
     ip::tcp::socket socket_;
     MYSQL mysql_;

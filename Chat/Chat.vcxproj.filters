@@ -26,9 +26,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\C++Lib\jsoncpp\dist\json\json.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ChatServer.h">
       <Filter>Header Files</Filter>
     </ClInclude>

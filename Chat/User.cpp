@@ -174,6 +174,7 @@ void User::registrationUser(MYSQL& mysql, const std::string& login, const std::s
 }
 
 void User::findUser(MYSQL& mysql, const std::string& login) {
+
     std::lock_guard<std::mutex> lock(mutex_);
 
     std::ostringstream queryStream;
@@ -207,4 +208,8 @@ void User::findUser(MYSQL& mysql, const std::string& login) {
             mysql_free_result(result);
         }
     }
+}
+
+void User::sendMessage(const std::string& recipient) {
+    
 }
