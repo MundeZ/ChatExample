@@ -1,12 +1,11 @@
 #include "User.h"
 
-
-
 User::User(ip::tcp::socket socket, MYSQL& mysql, std::vector<std::shared_ptr<User>>& session)
-    : socket_(std::move(socket)), mysql_(mysql) ,sessions_(session) {}
+    : socket_(std::move(socket)), mysql_(mysql), sessions_(session) {}
 
 User::~User() {
     socket_.close();
+    sessions_.erase(std::remove(sessions_.begin(), sessions_.end(), shared_from_this()), sessions_.end());
 }
 
 void User::start() {
@@ -69,8 +68,8 @@ std::map<std::string, std::string> User::parseData(std::string json_data) {
             auto obj = json.as_object();
             json_data_["api"] = obj.at("api").as_string().c_str();
             json_data_["login"] = obj.at("login").as_string().c_str();
-            json_data_["password"] = obj.at("password").as_string().c_str();
-            json_data_["recipient"] = obj.at("recipient").as_string().c_str();
+            json_data_["password"] = obj.at("password").as_string().c_str(); 
+            json_data_["recipient"] = obj.at("recipient").as_string().c_str(); 
             json_data_["message"] = obj.at("message").as_string().c_str();
         }
         else {
@@ -94,8 +93,7 @@ void User::menu(const std::map<std::string, std::string>& client_data) {
         findUser(mysql_, client_data.at("login"));
     }
     else if (client_data.at("api") == "Message") {
-        //insertMessageIntoDB(mysql_, client_data.at("login"), client_data.at("recipient"), client_data.at("message")); // просто для хранения логов 
-        //sendMessage(client_data.at("recipient"), client_data.at("message"));
+        sendMessage(client_data.at("recipient"), client_data.at("message"));
     }
 }
 
@@ -123,6 +121,7 @@ void User::loginUser(MYSQL& mysql, const std::string& login, const std::string& 
             if (row != nullptr && std::stoi(row[0]) > 0) {
                 std::map<std::string, std::string> responseMap;
                 responseMap["response_message"] = "OK";
+                setLogin(login); 
                 do_write(max_length, responseMap);
             }
             else {
@@ -169,6 +168,7 @@ void User::registrationUser(MYSQL& mysql, const std::string& login, const std::s
     else {
         std::map<std::string, std::string> responseMap;
         responseMap["response_message"] = "OK";
+        setLogin(login); 
         do_write(max_length, responseMap);
     }
 }
@@ -210,6 +210,35 @@ void User::findUser(MYSQL& mysql, const std::string& login) {
     }
 }
 
-void User::sendMessage(const std::string& recipient) {
-    
+std::shared_ptr<User> User::findRecipient(const std::string& recipient) {
+    auto it = std::find_if(sessions_.begin(), sessions_.end(),
+        [&recipient](const std::shared_ptr<User>& user) {
+            return user->getLogin() == recipient;
+        });
+    return (it != sessions_.end()) ? *it : nullptr;
+}
+
+void User::sendMessage(const std::string& recipient, const std::string& message) {
+    std::shared_ptr<User> recipientUser = findRecipient(recipient);
+
+    std::map<std::string, std::string> responseMap;
+    responseMap["message"] = message;
+
+    if (recipientUser) {
+        recipientUser->do_write(message.size(), responseMap);
+    }
+    else {
+        std::map<std::string, std::string> responseMap_error;
+        responseMap_error["message"] = "Recipient not found";
+        do_write(max_length, responseMap_error);
+        Logger::instance().log("Recipient not found: " + recipient);
+    }
+}
+
+std::string User::getLogin() const {
+    return login_;
+}
+
+void User::setLogin(const std::string& login) {
+    login_ = login;
 }

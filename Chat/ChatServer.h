@@ -5,8 +5,8 @@
 #include <vector>
 #include <string>
 #include "mysql.h"
-
 #include "User.h"
+
 
 using namespace boost::asio;
 
@@ -15,6 +15,8 @@ public:
     ChatServer(boost::asio::io_context& io_context, short port);
     ~ChatServer();
     void connect_to_db();
+
+
 
 private:
     void do_accept();

@@ -21,7 +21,7 @@ StartScreen::StartScreen(QWidget *parent)
     connect(registrationForm, &RegistrationForm::loginRequested, this, &StartScreen::setLoginForm);
     connect(registrationForm, &RegistrationForm::enterToChatRequested, this, &StartScreen::setMainWindow);
 
-    connectToServer.connect(); // Подключение к серверу
+    connectToServer.connect();
 
     ui->stackedWidget->setCurrentWidget(loginForm); // Устанавливаем начальную страницу
 }

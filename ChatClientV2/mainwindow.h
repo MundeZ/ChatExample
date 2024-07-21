@@ -3,8 +3,12 @@
 
 #include <QMainWindow>
 #include "connect.h"
-#include "qboxlayout.h"
-#include "qmessagebox.h"
+#include <QVBoxLayout>
+#include <QMessageBox>
+#include <QTimer>
+#include <QtConcurrent/QtConcurrent>
+#include <QFuture>
+#include <QFutureWatcher>
 
 namespace Ui {
 class MainWindow;
@@ -23,8 +27,11 @@ public:
     void findUserInLineEdit();
     std::string getCurrentUserForMessage();
     void showUsersInBrowser();
-    void createUserInLeftMenu(std::string name); // create a button with nickname
+    void createUserInLeftMenu(std::string name);
     QPushButton* findButtonByName(const QString& name);
+
+    void checkMessage();
+    void handleMessageResponse(QString message);
 
 private slots:
     void onButtonClicked();
@@ -37,7 +44,8 @@ private:
     Connect* connectToServer;
 
     QVBoxLayout* buttonLayout;
-
+    QTimer* messageTimer;
+    QFutureWatcher<QString> messageWatcher;
 };
 
 #endif // MAINWINDOW_H

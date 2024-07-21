@@ -4,7 +4,7 @@
 RegistrationForm::RegistrationForm(QWidget *parent, Connect* connectToServer)
     : QWidget(parent)
     , ui(new Ui::RegistrationForm)
-    , connectToServer(connectToServer) // Инициализация указателя
+    , connectToServer(connectToServer)
 {
     ui->setupUi(this);
 }

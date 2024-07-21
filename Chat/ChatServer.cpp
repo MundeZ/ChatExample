@@ -14,7 +14,9 @@ ChatServer::~ChatServer() {
 void ChatServer::do_accept() {
     acceptor_.async_accept(socket_, [this](boost::system::error_code ec) {
         if (!ec) {
-            std::make_shared<User>(std::move(socket_), mysql_, sessions_)->start();
+            auto new_user = std::make_shared<User>(std::move(socket_), mysql_, sessions_);
+            sessions_.push_back(new_user);
+            new_user->start();
         }
         do_accept();  // Accept the next connection
     });
@@ -34,3 +36,5 @@ void ChatServer::connect_to_db() {
         Logger::instance().log("Successfully connected to the database!");
     }
 }
+
+
