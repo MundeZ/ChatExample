@@ -30,6 +30,13 @@ MainWindow::~MainWindow() {
 
 void MainWindow::setCurrentUserForMessage(QString name) {
     CurrentUserForMessage_ = name;
+
+    // При смене пользователя, показать историю сообщений для него
+    if (chatHistory.find(name) != chatHistory.end()) {
+        ui->dispayMessageTextBrowser->setText(chatHistory[name]);
+    } else {
+        ui->dispayMessageTextBrowser->clear();
+    }
 }
 
 void MainWindow::removeCurrentUserForMessage() {
@@ -38,13 +45,17 @@ void MainWindow::removeCurrentUserForMessage() {
 
 void MainWindow::findUserInLineEdit() {
     std::string data = ui->findUserLineEdit->text().toStdString();
-    std::string response = connectToServer->requestToServer(connectToServer->getApi(FIND_USER), data, "", "", "");
 
-    if(response == "OK") {
-        createUserInLeftMenu(data);
-    } else {
-        ui->findUserLineEdit->setText(QString::fromStdString(response));
-    }
+    QFuture<void> future = QtConcurrent::run([this, data]() {
+        std::string response = connectToServer->requestToServer(connectToServer->getApi(FIND_USER), data, "", "", "");
+        QMetaObject::invokeMethod(this, [this, response, data]() {
+            if(response == "OK") {
+                createUserInLeftMenu(data);
+            } else {
+                ui->findUserLineEdit->setText(QString::fromStdString(response));
+            }
+        });
+    });
 }
 
 void MainWindow::createUserInLeftMenu(std::string name) {
@@ -55,7 +66,7 @@ void MainWindow::createUserInLeftMenu(std::string name) {
 
     // Запуск проверки сообщений, если окно существует
     if (ui->dispayMessageTextBrowser) {
-        messageTimer->start(1000);
+        messageTimer->start(2000);
     }
 }
 
@@ -77,10 +88,12 @@ void MainWindow::onButtonClicked() {
         setCurrentUserForMessage(buttonText);
 
         // Немедленно проверяем сообщения при выборе пользователя
-        QFuture<QString> future = QtConcurrent::run([this]() {
-            return QString::fromStdString(connectToServer->responseFromServer());
+        QFuture<void> future = QtConcurrent::run([this]() {
+            QString response = QString::fromStdString(connectToServer->responseFromServer());
+            QMetaObject::invokeMethod(this, [this, response]() {
+                handleMessageResponse(response);
+            });
         });
-        messageWatcher.setFuture(future);
     }
 }
 
@@ -89,30 +102,56 @@ void MainWindow::on_searchUserPushButton_clicked() {
 }
 
 void MainWindow::on_sendMessagePushButton_clicked() {
+    std::string recipient = CurrentUserForMessage_.toStdString();
+    std::string data = ui->inputMessageTextEdit->toPlainText().toStdString();
     if (!CurrentUserForMessage_.isEmpty()) {
-        std::string recipient = CurrentUserForMessage_.toStdString();
-        std::string data = ui->inputMessageTextEdit->toPlainText().toStdString();
-        std::string response = connectToServer->requestToServer(connectToServer->getApi(MESSAGE), "", "", data, recipient);
-        QString x = QString::fromStdString(response);
-        ui->dispayMessageTextBrowser->append(x);
+        QFuture<void> future = QtConcurrent::run([this, recipient, data]() {
+            std::string response = connectToServer->requestToServer(connectToServer->getApi(MESSAGE), "", "", data, recipient);
+            QString msg = QString::fromStdString(response);
+            QMetaObject::invokeMethod(this, [this, response]() {
+                handleMessageResponse(QString::fromStdString(response));
+            });
+        });
     } else {
-        QMessageBox::warning(this, "Error", "No user selected for messaging");
+        QString msgError = "No user selected for messaging";
+        ui->dispayMessageTextBrowser->append(msgError);
     }
 }
 
 void MainWindow::checkMessage() {
     if (ui->dispayMessageTextBrowser) {
-        QFuture<QString> future = QtConcurrent::run([this]() {
-            return QString::fromStdString(connectToServer->responseFromServer());
+        QFuture<void> future = QtConcurrent::run([this]() {
+            QString response = QString::fromStdString(connectToServer->responseFromServer());
+            QMetaObject::invokeMethod(this, [this, response]() {
+                handleMessageResponse(response);
+            });
         });
-        messageWatcher.setFuture(future);
     } else {
         messageTimer->stop();  // Останавливаем таймер, если окно закрыто
     }
 }
 
-void MainWindow::handleMessageResponse(QString message) {
+void MainWindow::handleMessageResponse(QString message) { // сообщение приходит в формате "Sender: Message"
     if (!message.isEmpty()) {
-        ui->dispayMessageTextBrowser->append(message);
+        QStringList parts = message.split(": ", Qt::SkipEmptyParts);
+        if (parts.size() == 2) {
+            QString sender = parts[0];
+            QString msg = parts[1];
+            processIncomingMessage(sender, msg);
+        } else {
+            ui->dispayMessageTextBrowser->append(message);
+        }
+    }
+}
+
+void MainWindow::processIncomingMessage(const QString& sender, const QString& message) {
+    if (chatHistory.find(sender) != chatHistory.end()) {
+        chatHistory[sender] += "\n" + sender + ": " + message;
+    } else {
+        chatHistory[sender] = sender + ": " + message;
+    }
+
+    if (CurrentUserForMessage_ == sender) {
+        ui->dispayMessageTextBrowser->append(sender + ": " + message);
     }
 }

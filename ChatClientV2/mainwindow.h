@@ -9,6 +9,7 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QFuture>
 #include <QFutureWatcher>
+#include <map>
 
 namespace Ui {
 class MainWindow;
@@ -32,6 +33,7 @@ public:
 
     void checkMessage();
     void handleMessageResponse(QString message);
+    void processIncomingMessage(const QString& sender, const QString& message);
 
 private slots:
     void onButtonClicked();
@@ -46,6 +48,7 @@ private:
     QVBoxLayout* buttonLayout;
     QTimer* messageTimer;
     QFutureWatcher<QString> messageWatcher;
+    std::map<QString, QString> chatHistory; // история чата для каждого пользователя
 };
 
 #endif // MAINWINDOW_H

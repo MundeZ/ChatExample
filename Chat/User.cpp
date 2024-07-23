@@ -25,37 +25,47 @@ void User::do_read() {
                     try {
                         std::map<std::string, std::string> client_data = parseData(json_data);
                         menu(client_data);
-                        do_read();
+                        do_read(); 
                     }
                     catch (const std::exception& e) {
                         Logger::instance().log("Error parsing JSON data: " + std::string(e.what()));
+                        std::map<std::string, std::string> responseMap;
+                        responseMap["response_message"] = "ERROR: " + std::string(e.what());
+                        do_write(responseMap); 
                     }
                 }
                 else {
                     Logger::instance().log("Received empty data from client");
+                    std::map<std::string, std::string> responseMap;
+                    responseMap["response_message"] = "ERROR: Empty data received";
+                    do_write(responseMap); 
                 }
             }
             else {
                 Logger::instance().log("Error reading data: " + ec.message());
+                std::map<std::string, std::string> responseMap;
+                responseMap["response_message"] = "ERROR: " + ec.message();
+                do_write(responseMap); 
             }
         });
 }
 
-void User::do_write(std::size_t length, std::map<std::string, std::string> responseMap) {
+void User::do_write(std::map<std::string, std::string> responseMap) {
     auto self(shared_from_this());
 
-    // Преобразование std::map в JSON-подобную строку
     boost::json::object response;
     for (const auto& pair : responseMap) {
         response[pair.first] = pair.second;
     }
     auto jsonResponse = std::make_shared<std::string>(boost::json::serialize(response) + "\n");
 
-    // Отправка ответа клиенту
     async_write(socket_, buffer(*jsonResponse),
         [this, self, jsonResponse](boost::system::error_code ec, std::size_t /*length*/) {
             if (ec) {
                 Logger::instance().log("Error sending data: " + ec.message());
+            }
+            else {
+                Logger::instance().log("Data sent successfully: " + *jsonResponse);
             }
         });
 }
@@ -68,8 +78,8 @@ std::map<std::string, std::string> User::parseData(std::string json_data) {
             auto obj = json.as_object();
             json_data_["api"] = obj.at("api").as_string().c_str();
             json_data_["login"] = obj.at("login").as_string().c_str();
-            json_data_["password"] = obj.at("password").as_string().c_str(); 
-            json_data_["recipient"] = obj.at("recipient").as_string().c_str(); 
+            json_data_["password"] = obj.at("password").as_string().c_str();
+            json_data_["recipient"] = obj.at("recipient").as_string().c_str();
             json_data_["message"] = obj.at("message").as_string().c_str();
         }
         else {
@@ -84,74 +94,74 @@ std::map<std::string, std::string> User::parseData(std::string json_data) {
 
 void User::menu(const std::map<std::string, std::string>& client_data) {
     if (client_data.at("api") == "Registration") {
-        registrationUser(mysql_, client_data.at("login"), client_data.at("password"));
+        registrationUser(client_data.at("login"), client_data.at("password"));
     }
     else if (client_data.at("api") == "Login") {
-        loginUser(mysql_, client_data.at("login"), client_data.at("password"));
+        loginUser(client_data.at("login"), client_data.at("password"));
     }
     else if (client_data.at("api") == "FindUser") {
-        findUser(mysql_, client_data.at("login"));
+        findUser(client_data.at("login"));
     }
     else if (client_data.at("api") == "Message") {
         sendMessage(client_data.at("recipient"), client_data.at("message"));
     }
 }
 
-void User::loginUser(MYSQL& mysql, const std::string& login, const std::string& password) {
+void User::loginUser(const std::string& login, const std::string& password) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     std::ostringstream queryStream;
     queryStream << "SELECT COUNT(*) FROM testdb.users WHERE name = '" << login << "' AND password = '" << password << "'";
     std::string query = queryStream.str();
 
-    if (mysql_query(&mysql, query.c_str()) != 0) {
+    if (mysql_query(&mysql_, query.c_str()) != 0) {
         std::map<std::string, std::string> responseMap;
-        responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql));
-        do_write(max_length, responseMap);
+        responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql_));
+        do_write(responseMap);
     }
     else {
-        MYSQL_RES* result = mysql_store_result(&mysql);
+        MYSQL_RES* result = mysql_store_result(&mysql_);
         if (result == nullptr) {
             std::map<std::string, std::string> responseMap;
-            responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql));
-            do_write(max_length, responseMap);
+            responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql_));
+            do_write(responseMap);
         }
         else {
             MYSQL_ROW row = mysql_fetch_row(result);
             if (row != nullptr && std::stoi(row[0]) > 0) {
                 std::map<std::string, std::string> responseMap;
                 responseMap["response_message"] = "OK";
-                setLogin(login); 
-                do_write(max_length, responseMap);
+                setLogin(login);
+                do_write(responseMap);
             }
             else {
                 std::map<std::string, std::string> responseMap;
                 responseMap["response_message"] = "ERROR: Invalid login or password";
-                do_write(max_length, responseMap);
+                do_write(responseMap);
             }
             mysql_free_result(result);
         }
     }
 }
 
-void User::registrationUser(MYSQL& mysql, const std::string& login, const std::string& password) {
+void User::registrationUser(const std::string& login, const std::string& password) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     std::string checkQuery = "SELECT COUNT(*) FROM testdb.users WHERE name = '" + login + "'";
 
-    if (mysql_query(&mysql, checkQuery.c_str()) != 0) {
+    if (mysql_query(&mysql_, checkQuery.c_str()) != 0) {
         std::map<std::string, std::string> responseMap;
-        responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql));
-        do_write(max_length, responseMap);
+        responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql_));
+        do_write(responseMap);
     }
 
-    MYSQL_RES* res = mysql_store_result(&mysql);
+    MYSQL_RES* res = mysql_store_result(&mysql_);
     MYSQL_ROW row = mysql_fetch_row(res);
 
     if (row && std::stoi(row[0]) > 0) {
         std::map<std::string, std::string> responseMap;
         responseMap["response_message"] = "ERROR: User already exists";
-        do_write(max_length, responseMap);
+        do_write(responseMap);
     }
 
     mysql_free_result(res);
@@ -160,50 +170,49 @@ void User::registrationUser(MYSQL& mysql, const std::string& login, const std::s
     queryStream << "INSERT INTO testdb.users(id, name, password) VALUES (default, '" << login << "', '" << password << "')";
     std::string query = queryStream.str();
 
-    if (mysql_query(&mysql, query.c_str()) != 0) {
+    if (mysql_query(&mysql_, query.c_str()) != 0) {
         std::map<std::string, std::string> responseMap;
-        responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql));
-        do_write(max_length, responseMap);
+        responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql_));
+        do_write(responseMap);
     }
     else {
         std::map<std::string, std::string> responseMap;
         responseMap["response_message"] = "OK";
-        setLogin(login); 
-        do_write(max_length, responseMap);
+        setLogin(login);
+        do_write(responseMap);
     }
 }
 
-void User::findUser(MYSQL& mysql, const std::string& login) {
-
+void User::findUser(const std::string& login) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     std::ostringstream queryStream;
     queryStream << "SELECT COUNT(*) FROM testdb.users WHERE name = '" << login << "'";
     std::string query = queryStream.str();
 
-    if (mysql_query(&mysql, query.c_str()) != 0) {
+    if (mysql_query(&mysql_, query.c_str()) != 0) {
         std::map<std::string, std::string> responseMap;
-        responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql));
-        do_write(max_length, responseMap);
+        responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql_));
+        do_write(responseMap);
     }
     else {
-        MYSQL_RES* result = mysql_store_result(&mysql);
+        MYSQL_RES* result = mysql_store_result(&mysql_);
         if (result == nullptr) {
             std::map<std::string, std::string> responseMap;
-            responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql));
-            do_write(max_length, responseMap);
+            responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql_));
+            do_write(responseMap);
         }
         else {
             MYSQL_ROW row = mysql_fetch_row(result);
             if (row != nullptr && std::stoi(row[0]) > 0) {
                 std::map<std::string, std::string> responseMap;
                 responseMap["response_message"] = "OK";
-                do_write(max_length, responseMap);
+                do_write(responseMap);
             }
             else {
                 std::map<std::string, std::string> responseMap;
                 responseMap["response_message"] = "ERROR: User not found";
-                do_write(max_length, responseMap);
+                do_write(responseMap);
             }
             mysql_free_result(result);
         }
@@ -222,17 +231,19 @@ void User::sendMessage(const std::string& recipient, const std::string& message)
     std::shared_ptr<User> recipientUser = findRecipient(recipient);
 
     std::map<std::string, std::string> responseMap;
-    responseMap["message"] = message;
-
     if (recipientUser) {
-        recipientUser->do_write(message.size(), responseMap);
+        Logger::instance().log("Recipient found: " + recipient + ", sending message: " + message);
+        std::map<std::string, std::string> messageMap;
+        messageMap["response_message"] = getLogin() + ": " + message;
+        recipientUser->do_write(messageMap);
+
+        responseMap["response_message"] = "message";
     }
     else {
-        std::map<std::string, std::string> responseMap_error;
-        responseMap_error["message"] = "Recipient not found";
-        do_write(max_length, responseMap_error);
+        responseMap["response_message"] = "ERROR: Recipient not found";
         Logger::instance().log("Recipient not found: " + recipient);
     }
+    do_write(responseMap);
 }
 
 std::string User::getLogin() const {

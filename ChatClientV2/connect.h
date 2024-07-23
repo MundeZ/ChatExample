@@ -20,7 +20,6 @@ enum Api {
 };
 
 class Connect {
-
 public:
     Connect();
     ~Connect();

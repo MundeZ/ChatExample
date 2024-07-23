@@ -30,7 +30,7 @@ std::string Connect::getApi(Api api) {
         { REGISTRATION, "Registration" },
         { LOGIN, "Login" },
         { MESSAGE, "Message" },
-        { FIND_USER, "FindUser"}
+        { FIND_USER, "FindUser" }
     };
     return apiToString[api];
 }
@@ -51,39 +51,37 @@ std::string Connect::requestToServer(const std::string &api, const std::string &
     // Отправка JSON-строки на сервер
     boost::asio::write(socket_, buffer(jsonData + "\n"), error_);
     if (error_) {
-         msgResponse = "Error sending JSON request: " + error_.message();
+        msgResponse = "Error sending JSON request: " + error_.message();
         return msgResponse;
     }
     return responseFromServer();
 }
 
 std::string Connect::responseFromServer() {
-        std::string jsonData;
-        boost::asio::streambuf receiveBuffer;
-        boost::system::error_code error;
-        boost::asio::read_until(socket_, receiveBuffer, "\n", error);
-        if (error) {
-            return "Error reading response: " + error.message();
-        }
+    std::string jsonData;
+    boost::asio::streambuf receiveBuffer;
+    boost::system::error_code error;
+    boost::asio::read_until(socket_, receiveBuffer, "\n", error);
+    if (error) {
+        return "Error reading response: " + error.message();
+    }
 
-        std::istream is(&receiveBuffer);
-        std::getline(is, jsonData);
+    std::istream is(&receiveBuffer);
+    std::getline(is, jsonData);
 
-        try {
-            auto json = boost::json::parse(jsonData);
-            if (json.is_object()) {
-                auto obj = json.as_object();
-                if (obj.contains("response_message")) {
-                    return obj["response_message"].as_string().c_str();
-                } else {
-                    return "Invalid response: missing 'response_message'";
-                }
+    try {
+        auto json = boost::json::parse(jsonData);
+        if (json.is_object()) {
+            auto obj = json.as_object();
+            if (obj.contains("response_message")) {
+                return obj["response_message"].as_string().c_str();
             } else {
-                return "Invalid response format";
+                return "Invalid response: missing 'response_message'";
             }
-        } catch (const std::exception& e) {
-            return "Error parsing response: " + std::string(e.what());
+        } else {
+            return "Invalid response format";
         }
+    } catch (const std::exception& e) {
+        return "Error parsing response: " + std::string(e.what());
+    }
 }
-
-
