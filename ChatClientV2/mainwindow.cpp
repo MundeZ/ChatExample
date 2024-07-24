@@ -8,6 +8,9 @@ MainWindow::MainWindow(QWidget *parent, Connect* connectToServer)
     , ui(new Ui::MainWindow)
     , connectToServer(connectToServer)
     , messageTimer(new QTimer(this))
+    , userSearchWatcher(new QFutureWatcher<void>(this))
+    , messageSendWatcher(new QFutureWatcher<void>(this))
+    , isCheckingMessages(false)
 {
     ui->setupUi(this);
 
@@ -17,57 +20,54 @@ MainWindow::MainWindow(QWidget *parent, Connect* connectToServer)
 
     // Настройка таймера для проверки сообщений
     connect(messageTimer, &QTimer::timeout, this, &MainWindow::checkMessage);
-
-    // Настройка QFutureWatcher для обработки асинхронных ответов
-    connect(&messageWatcher, &QFutureWatcher<QString>::finished, this, [this]() {
-        handleMessageResponse(messageWatcher.result());
-    });
 }
 
 MainWindow::~MainWindow() {
     delete ui;
 }
 
-void MainWindow::setCurrentUserForMessage(QString name) {
+void MainWindow::setCurrentUserForMessage(const QString& name) {
     CurrentUserForMessage_ = name;
 
-    // При смене пользователя, показать историю сообщений для него
+    // Показываем историю сообщений для текущего пользователя
+    ui->dispayMessageTextBrowser->clear();
     if (chatHistory.find(name) != chatHistory.end()) {
         ui->dispayMessageTextBrowser->setText(chatHistory[name]);
-    } else {
-        ui->dispayMessageTextBrowser->clear();
     }
 }
 
 void MainWindow::removeCurrentUserForMessage() {
-    CurrentUserForMessage_ = "";
+    CurrentUserForMessage_.clear();
 }
 
 void MainWindow::findUserInLineEdit() {
-    std::string data = ui->findUserLineEdit->text().toStdString();
+    QString data = ui->findUserLineEdit->text();
 
     QFuture<void> future = QtConcurrent::run([this, data]() {
-        std::string response = connectToServer->requestToServer(connectToServer->getApi(FIND_USER), data, "", "", "");
-        QMetaObject::invokeMethod(this, [this, response, data]() {
-            if(response == "OK") {
-                createUserInLeftMenu(data);
-            } else {
-                ui->findUserLineEdit->setText(QString::fromStdString(response));
-            }
-        });
+        std::string response = connectToServer->requestToServer(connectToServer->getApi(FIND_USER), data.toStdString(), "", "", "");
+        QString result = QString::fromStdString(response);
+        QMetaObject::invokeMethod(this, [this, result, data]() {
+                if (result == "OK") {
+                    createUserInLeftMenu(data);
+                } else {
+                    ui->findUserLineEdit->setText(result);
+                }
+            }, Qt::QueuedConnection);
     });
+
+    userSearchWatcher->setFuture(future);
 }
 
-void MainWindow::createUserInLeftMenu(std::string name) {
-    QString name_1 = QString::fromStdString(name);
-    QPushButton* button1 = new QPushButton(name_1, ui->widget_1);
-    connect(button1, &QPushButton::clicked, this, &MainWindow::onButtonClicked);
-    buttonLayout->addWidget(button1);
-
-    // Запуск проверки сообщений, если окно существует
-    if (ui->dispayMessageTextBrowser) {
-        messageTimer->start(2000);
-    }
+void MainWindow::createUserInLeftMenu(const QString& name) {
+    QMetaObject::invokeMethod(this, [this, name]() {
+            QPushButton* existingButton = findButtonByName(name);
+            if (!existingButton) {
+                QPushButton* button = new QPushButton(name, ui->widget_1);
+                connect(button, &QPushButton::clicked, this, &MainWindow::onButtonClicked);
+                buttonLayout->addWidget(button);
+                button->show();
+            }
+        }, Qt::QueuedConnection);
 }
 
 QPushButton* MainWindow::findButtonByName(const QString& name) {
@@ -84,54 +84,79 @@ void MainWindow::onButtonClicked() {
     QPushButton* button = qobject_cast<QPushButton*>(sender());
     if (button) {
         QString buttonText = button->text();
-        removeCurrentUserForMessage();
-        setCurrentUserForMessage(buttonText);
+        if (CurrentUserForMessage_ != buttonText) {
+            stopMessageCheck();
+            setCurrentUserForMessage(buttonText);
 
-        // Немедленно проверяем сообщения при выборе пользователя
-        QFuture<void> future = QtConcurrent::run([this]() {
-            QString response = QString::fromStdString(connectToServer->responseFromServer());
-            QMetaObject::invokeMethod(this, [this, response]() {
-                handleMessageResponse(response);
+            QFuture<void> future = QtConcurrent::run([this]() {
+                std::string response = connectToServer->responseFromServer();
+                QString result = QString::fromStdString(response);
+                QMetaObject::invokeMethod(this, [this, result]() {
+                        handleMessageResponse(result);
+                    }, Qt::QueuedConnection);
             });
-        });
+
+            messageSendWatcher->setFuture(future);
+            startMessageCheck();
+        }
     }
 }
 
 void MainWindow::on_searchUserPushButton_clicked() {
+    stopMessageCheck();
     findUserInLineEdit();
 }
 
 void MainWindow::on_sendMessagePushButton_clicked() {
-    std::string recipient = CurrentUserForMessage_.toStdString();
-    std::string data = ui->inputMessageTextEdit->toPlainText().toStdString();
-    if (!CurrentUserForMessage_.isEmpty()) {
+    QString recipient = CurrentUserForMessage_;
+    QString data = ui->inputMessageTextEdit->toPlainText();
+    if (!recipient.isEmpty()) {
         QFuture<void> future = QtConcurrent::run([this, recipient, data]() {
-            std::string response = connectToServer->requestToServer(connectToServer->getApi(MESSAGE), "", "", data, recipient);
-            QString msg = QString::fromStdString(response);
-            QMetaObject::invokeMethod(this, [this, response]() {
-                handleMessageResponse(QString::fromStdString(response));
-            });
+            std::string response = connectToServer->requestToServer(connectToServer->getApi(MESSAGE), "", "", data.toStdString(), recipient.toStdString());
+            QString result = QString::fromStdString(response);
+            QMetaObject::invokeMethod(this, [this, result]() {
+                    handleMessageResponse(result);
+                }, Qt::QueuedConnection);
         });
+
+        messageSendWatcher->setFuture(future);
     } else {
         QString msgError = "No user selected for messaging";
         ui->dispayMessageTextBrowser->append(msgError);
     }
 }
 
-void MainWindow::checkMessage() {
-    if (ui->dispayMessageTextBrowser) {
-        QFuture<void> future = QtConcurrent::run([this]() {
-            QString response = QString::fromStdString(connectToServer->responseFromServer());
-            QMetaObject::invokeMethod(this, [this, response]() {
-                handleMessageResponse(response);
-            });
-        });
-    } else {
-        messageTimer->stop();  // Останавливаем таймер, если окно закрыто
+void MainWindow::startMessageCheck() {
+    if (!isCheckingMessages) {
+        isCheckingMessages = true;
+        messageTimer->start(2000); // Проверяем сообщения каждые 2 секунды
     }
 }
 
-void MainWindow::handleMessageResponse(QString message) { // сообщение приходит в формате "Sender: Message"
+void MainWindow::stopMessageCheck() {
+    if (isCheckingMessages) {
+        isCheckingMessages = false;
+        messageTimer->stop();
+    }
+}
+
+void MainWindow::checkMessage() {
+    if (!CurrentUserForMessage_.isEmpty()) {
+        QFuture<void> future = QtConcurrent::run([this]() {
+            std::string response = connectToServer->responseFromServer();
+            QString result = QString::fromStdString(response);
+            QMetaObject::invokeMethod(this, [this, result]() {
+                    handleMessageResponse(result);
+                }, Qt::QueuedConnection);
+        });
+
+        messageSendWatcher->setFuture(future);
+    } else {
+        stopMessageCheck();
+    }
+}
+
+void MainWindow::handleMessageResponse(const QString& message) {
     if (!message.isEmpty()) {
         QStringList parts = message.split(": ", Qt::SkipEmptyParts);
         if (parts.size() == 2) {

@@ -23,17 +23,20 @@ public:
     explicit MainWindow(QWidget *parent = nullptr, Connect* connectToServer = nullptr);
     ~MainWindow();
 
-    void setCurrentUserForMessage(QString name);
+    void setCurrentUserForMessage(const QString& name);
     void removeCurrentUserForMessage();
     void findUserInLineEdit();
-    std::string getCurrentUserForMessage();
+    std::string getCurrentUserForMessage() const;
     void showUsersInBrowser();
-    void createUserInLeftMenu(std::string name);
+    void createUserInLeftMenu(const QString& name);
     QPushButton* findButtonByName(const QString& name);
 
-    void checkMessage();
-    void handleMessageResponse(QString message);
+    void startMessageCheck();
+    void stopMessageCheck();
+    void handleMessageResponse(const QString& message);
     void processIncomingMessage(const QString& sender, const QString& message);
+
+    void checkMessage();
 
 private slots:
     void onButtonClicked();
@@ -47,8 +50,12 @@ private:
 
     QVBoxLayout* buttonLayout;
     QTimer* messageTimer;
-    QFutureWatcher<QString> messageWatcher;
-    std::map<QString, QString> chatHistory; // история чата для каждого пользователя
+    std::map<QString, QString> chatHistory;
+
+    QFutureWatcher<void>* userSearchWatcher;
+    QFutureWatcher<void>* messageSendWatcher;
+    QFuture<void> messageCheckFuture;
+    bool isCheckingMessages;
 };
 
 #endif // MAINWINDOW_H
