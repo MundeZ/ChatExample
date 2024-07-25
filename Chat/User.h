@@ -26,8 +26,8 @@ public:
 
 private:
     void do_read();
-    void do_write(std::map<std::string, std::string> responseMap);
-    std::map<std::string, std::string> parseData(std::string json_data);
+    void do_write(const std::map<std::string, std::string>& responseMap);
+    std::map<std::string, std::string> parseData(const std::string& json_data);
     void loginUser(const std::string& login, const std::string& password);
     void registrationUser(const std::string& login, const std::string& password);
     void findUser(const std::string& login);

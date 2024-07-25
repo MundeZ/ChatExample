@@ -22,18 +22,24 @@ void RegistrationForm::on_enterToChatPushButton_clicked() {
     std::string password = ui->passwordEdit->text().toStdString();
     std::string confirm = ui->confirmEdit->text().toStdString();
 
-    if (password == confirm ) {
-        if(!login.empty()) {
-            std::string response = connectToServer->requestToServer(connectToServer->getApi(REGISTRATION), login, password, "", "");
-            if (response == "OK") {
+    if (password == confirm) {
+        if (!login.empty()) {
+            std::map<std::string, std::string> response = connectToServer->requestToServerRegistration(
+                connectToServer->getApi(REGISTRATION), login, password);
+
+            auto apiIt = response.find("api");
+            auto messageIt = response.find("response_message");
+
+            if (apiIt != response.end() && apiIt->second == "Registration" &&
+                messageIt != response.end() && messageIt->second == "OK") {
                 emit enterToChatRequested();
             } else {
-                ui->textBrowser->setText(QString::fromStdString(response));
+                std::string errorMessage = (messageIt != response.end()) ? messageIt->second : "Unknown error";
+                ui->textBrowser->setText(QString::fromStdString(errorMessage));
             }
         } else {
-            ui->textBrowser->setText("login can't be empty");
+            ui->textBrowser->setText("Login can't be empty");
         }
-
     } else {
         ui->textBrowser->setText("Passwords do not match.");
     }

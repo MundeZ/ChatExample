@@ -50,7 +50,7 @@ void User::do_read() {
         });
 }
 
-void User::do_write(std::map<std::string, std::string> responseMap) {
+void User::do_write(const std::map<std::string, std::string>& responseMap) {
     auto self(shared_from_this());
 
     boost::json::object response;
@@ -70,17 +70,21 @@ void User::do_write(std::map<std::string, std::string> responseMap) {
         });
 }
 
-std::map<std::string, std::string> User::parseData(std::string json_data) {
+std::map<std::string, std::string> User::parseData(const std::string& json_data) {
     std::map<std::string, std::string> json_data_;
     try {
-        auto json = boost::json::parse(json_data);
+        boost::json::value json = boost::json::parse(json_data);
         if (json.is_object()) {
-            auto obj = json.as_object();
-            json_data_["api"] = obj.at("api").as_string().c_str();
-            json_data_["login"] = obj.at("login").as_string().c_str();
-            json_data_["password"] = obj.at("password").as_string().c_str();
-            json_data_["recipient"] = obj.at("recipient").as_string().c_str();
-            json_data_["message"] = obj.at("message").as_string().c_str();
+            boost::json::object obj = json.as_object();
+            for (const auto& item : obj) {
+                if (item.value().is_string()) {
+                    json_data_.emplace(std::string(item.key().data(), item.key().size()),
+                        std::string(item.value().as_string().data(), item.value().as_string().size()));
+                }
+                else {
+                    Logger::instance().log("Value for key " + std::string(item.key().data(), item.key().size()) + " is not a string");
+                }
+            }
         }
         else {
             Logger::instance().log("Invalid JSON format: not an object");
@@ -116,6 +120,7 @@ void User::loginUser(const std::string& login, const std::string& password) {
 
     if (mysql_query(&mysql_, query.c_str()) != 0) {
         std::map<std::string, std::string> responseMap;
+        responseMap["api"] = "Login";
         responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql_));
         do_write(responseMap);
     }
@@ -123,6 +128,7 @@ void User::loginUser(const std::string& login, const std::string& password) {
         MYSQL_RES* result = mysql_store_result(&mysql_);
         if (result == nullptr) {
             std::map<std::string, std::string> responseMap;
+            responseMap["api"] = "Login";
             responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql_));
             do_write(responseMap);
         }
@@ -130,12 +136,14 @@ void User::loginUser(const std::string& login, const std::string& password) {
             MYSQL_ROW row = mysql_fetch_row(result);
             if (row != nullptr && std::stoi(row[0]) > 0) {
                 std::map<std::string, std::string> responseMap;
+                responseMap["api"] = "Login";
                 responseMap["response_message"] = "OK";
                 setLogin(login);
                 do_write(responseMap);
             }
             else {
                 std::map<std::string, std::string> responseMap;
+                responseMap["api"] = "Login";
                 responseMap["response_message"] = "ERROR: Invalid login or password";
                 do_write(responseMap);
             }
@@ -151,6 +159,7 @@ void User::registrationUser(const std::string& login, const std::string& passwor
 
     if (mysql_query(&mysql_, checkQuery.c_str()) != 0) {
         std::map<std::string, std::string> responseMap;
+        responseMap["api"] = "Registration";
         responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql_));
         do_write(responseMap);
     }
@@ -160,6 +169,7 @@ void User::registrationUser(const std::string& login, const std::string& passwor
 
     if (row && std::stoi(row[0]) > 0) {
         std::map<std::string, std::string> responseMap;
+        responseMap["api"] = "Registration";
         responseMap["response_message"] = "ERROR: User already exists";
         do_write(responseMap);
     }
@@ -172,11 +182,13 @@ void User::registrationUser(const std::string& login, const std::string& passwor
 
     if (mysql_query(&mysql_, query.c_str()) != 0) {
         std::map<std::string, std::string> responseMap;
+        responseMap["api"] = "Registration";
         responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql_));
         do_write(responseMap);
     }
     else {
         std::map<std::string, std::string> responseMap;
+        responseMap["api"] = "Registration";
         responseMap["response_message"] = "OK";
         setLogin(login);
         do_write(responseMap);
@@ -192,6 +204,7 @@ void User::findUser(const std::string& login) {
 
     if (mysql_query(&mysql_, query.c_str()) != 0) {
         std::map<std::string, std::string> responseMap;
+        responseMap["api"] = "FindUser";
         responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql_));
         do_write(responseMap);
     }
@@ -199,6 +212,7 @@ void User::findUser(const std::string& login) {
         MYSQL_RES* result = mysql_store_result(&mysql_);
         if (result == nullptr) {
             std::map<std::string, std::string> responseMap;
+            responseMap["api"] = "FindUser";
             responseMap["response_message"] = "ERROR: " + std::string(mysql_error(&mysql_));
             do_write(responseMap);
         }
@@ -206,11 +220,13 @@ void User::findUser(const std::string& login) {
             MYSQL_ROW row = mysql_fetch_row(result);
             if (row != nullptr && std::stoi(row[0]) > 0) {
                 std::map<std::string, std::string> responseMap;
+                responseMap["api"] = "FindUser";
                 responseMap["response_message"] = "OK";
                 do_write(responseMap);
             }
             else {
                 std::map<std::string, std::string> responseMap;
+                responseMap["api"] = "FindUser";
                 responseMap["response_message"] = "ERROR: User not found";
                 do_write(responseMap);
             }
@@ -233,13 +249,13 @@ void User::sendMessage(const std::string& recipient, const std::string& message)
     std::map<std::string, std::string> responseMap;
     if (recipientUser) {
         Logger::instance().log("Recipient found: " + recipient + ", sending message: " + message);
-        std::map<std::string, std::string> messageMap;
-        messageMap["response_message"] = getLogin() + ": " + message;
-        recipientUser->do_write(messageMap);
+        responseMap["api"] = "Message";
+        responseMap["response_message"] = getLogin() + ": " + message;
+        recipientUser->do_write(responseMap);
 
-        responseMap["response_message"] = "message";
     }
     else {
+        responseMap["api"] = "Message";
         responseMap["response_message"] = "ERROR: Recipient not found";
         Logger::instance().log("Recipient not found: " + recipient);
     }

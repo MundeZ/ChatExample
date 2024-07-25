@@ -33,7 +33,7 @@ public:
 
     void startMessageCheck();
     void stopMessageCheck();
-    void handleMessageResponse(const QString& message);
+    void handleMessageResponse(const std::map<std::string, std::string>& response);
     void processIncomingMessage(const QString& sender, const QString& message);
 
     void checkMessage();

@@ -26,9 +26,13 @@ public:
     void connect();
     ip::tcp::socket& getSocket();
     std::string getApi(Api api);
-    std::string requestToServer(const std::string& api, const std::string& login = "", const std::string& password = "", const std::string& message = "", const std::string& recipient = "");
-    std::string responseFromServer(); // return message from server
 
+    std::map<std::string, std::string> requestToServerRegistration(const std::string& api, const std::string& login = "", const std::string& password = "");
+    std::map<std::string, std::string> requestToServerLogin(const std::string& api, const std::string& login = "", const std::string& password = "");
+    std::map<std::string, std::string> requestToServerMessage(const std::string& api,const std::string& message = "", const std::string& recipient = "");
+    std::map<std::string, std::string> requestToServerFindUser(const std::string& api, const std::string& login = "");
+
+    std::map<std::string, std::string> responseFromServer();
 private:
     io_service service_;
     ip::tcp::socket socket_;

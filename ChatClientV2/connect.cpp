@@ -35,12 +35,44 @@ std::string Connect::getApi(Api api) {
     return apiToString[api];
 }
 
-std::string Connect::requestToServer(const std::string &api, const std::string &login, const std::string &password, const std::string &message, const std::string &recipient) {
+std::map<std::string, std::string> Connect::requestToServerRegistration(const std::string &api, const std::string &login, const std::string &password) {
     // Создание JSON-объекта запроса
     boost::json::object request;
     request["api"] = api;
     request["login"] = login;
     request["password"] = password;
+
+    // Преобразование JSON-объекта в строку
+    std::string jsonData = boost::json::serialize(request);
+
+    std::string msgResponse;
+    // Отправка JSON-строки на сервер
+    boost::asio::write(socket_, buffer(jsonData + "\n"), error_);
+
+    return responseFromServer();
+}
+
+std::map<std::string, std::string> Connect::requestToServerLogin(const std::string &api, const std::string &login, const std::string &password) {
+    // Создание JSON-объекта запроса
+    boost::json::object request;
+    request["api"] = api;
+    request["login"] = login;
+    request["password"] = password;
+
+    // Преобразование JSON-объекта в строку
+    std::string jsonData = boost::json::serialize(request);
+
+    std::string msgResponse;
+    // Отправка JSON-строки на сервер
+    boost::asio::write(socket_, buffer(jsonData + "\n"), error_);
+
+    return responseFromServer();
+}
+
+std::map<std::string, std::string> Connect::requestToServerMessage(const std::string &api, const std::string &message, const std::string &recipient){
+    // Создание JSON-объекта запроса
+    boost::json::object request;
+    request["api"] = api;
     request["recipient"] = recipient;
     request["message"] = message;
 
@@ -50,21 +82,32 @@ std::string Connect::requestToServer(const std::string &api, const std::string &
     std::string msgResponse;
     // Отправка JSON-строки на сервер
     boost::asio::write(socket_, buffer(jsonData + "\n"), error_);
-    if (error_) {
-        msgResponse = "Error sending JSON request: " + error_.message();
-        return msgResponse;
-    }
+
     return responseFromServer();
 }
 
-std::string Connect::responseFromServer() {
+std::map<std::string, std::string> Connect::requestToServerFindUser(const std::string &api, const std::string &login) {
+    // Создание JSON-объекта запроса
+    boost::json::object request;
+    request["api"] = api;
+    request["login"] = login;
+
+    // Преобразование JSON-объекта в строку
+    std::string jsonData = boost::json::serialize(request);
+
+    std::string msgResponse;
+    // Отправка JSON-строки на сервер
+    boost::asio::write(socket_, buffer(jsonData + "\n"), error_);
+
+    return responseFromServer();
+}
+
+std::map<std::string, std::string> Connect::responseFromServer() {
     std::string jsonData;
+    std::map<std::string, std::string> json_data_;
     boost::asio::streambuf receiveBuffer;
     boost::system::error_code error;
     boost::asio::read_until(socket_, receiveBuffer, "\n", error);
-    if (error) {
-        return "Error reading response: " + error.message();
-    }
 
     std::istream is(&receiveBuffer);
     std::getline(is, jsonData);
@@ -73,15 +116,16 @@ std::string Connect::responseFromServer() {
         auto json = boost::json::parse(jsonData);
         if (json.is_object()) {
             auto obj = json.as_object();
-            if (obj.contains("response_message")) {
-                return obj["response_message"].as_string().c_str();
-            } else {
-                return "Invalid response: missing 'response_message'";
+            for (const auto& item : obj) {
+                if (item.value().is_string()) {
+                    json_data_.emplace(std::string(item.key().data(), item.key().size()),
+                                       std::string(item.value().as_string().data(), item.value().as_string().size()));
+                }
             }
-        } else {
-            return "Invalid response format";
         }
     } catch (const std::exception& e) {
-        return "Error parsing response: " + std::string(e.what());
+        json_data_["response_message"] = "Error parsing response: " + std::string(e.what());
     }
+
+    return json_data_;
 }

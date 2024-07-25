@@ -22,13 +22,19 @@ void LoginForm::on_enterToChatPushButton_clicked() {
     std::string password = ui->passwordEditInLoginWindow->text().toStdString();
 
     if(!login.empty()) {
-        std::string response = connectToServer->requestToServer(connectToServer->getApi(LOGIN), login, password, "", "");
-        if (response == "OK") {
+        std::map<std::string, std::string> response = connectToServer->requestToServerLogin(connectToServer->getApi(LOGIN), login, password);
+
+        auto apiIt = response.find("api");
+        auto messageIt = response.find("response_message");
+
+        if (apiIt != response.end() && apiIt->second == "Login" &&
+            messageIt != response.end() && messageIt->second == "OK") {
             emit enterToChatRequested();
         } else {
-            ui->textBrowser->setText(QString::fromStdString(response));
+            std::string errorMessage = (messageIt != response.end()) ? messageIt->second : "Unknown error";
+            ui->textBrowser->setText(QString::fromStdString(errorMessage));
         }
     } else {
-        ui->textBrowser->setText("login can't be empty");
+        ui->textBrowser->setText("Login can't be empty");
     }
 }
